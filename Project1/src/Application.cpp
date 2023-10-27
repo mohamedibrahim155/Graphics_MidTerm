@@ -37,23 +37,6 @@
 
 
 
-/*TIPS and notes
-
-* Shaders does not need to be stored in stack or heap as they are mostly read only and used in compile time. what you can do is
-  link the shaders and once its job is done in the graphics card you should delete the shaders as its not necessary anymore
-
-* Always abstract classes properly to maintain proper code.
-
-* Use uniforms in the shader whenever you want to change the values for the shader like moving the triangle etc
-*
-* Always check if you binded every vertex array correctly that you created, remember the day you tried to make a diffuse light.
-*
-*
-*
-
-
-
-*/
 bool switchCamera = false;
 bool switchToPointLight = false;
 
@@ -61,6 +44,7 @@ glm::vec3 currentLight(1.0f, 0.0f, 1.0f);
 glm::vec3 spotlightPos(1.0f, 0.0f, 1.0f);
 glm::vec3 PointLightPos(-1.0f, 0.0f, 1.0f);
 
+bool isAnimationKeyPressed = false;
 void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -99,18 +83,19 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
      
 
     }
-    if (key == GLFW_KEY_I && action == GLFW_PRESS)
+    if (key == GLFW_KEY_R && action == GLFW_PRESS)
     {
-
+        isAnimationKeyPressed = true;
     }
 
 }
 
-const unsigned int SCR_WIDTH = 2000;
-const unsigned int SCR_HEIGHT = 2000;
+
+const unsigned int SCR_WIDTH = 1920;
+const unsigned int SCR_HEIGHT = 1080;
 
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(5.0f, 0.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -119,6 +104,14 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+std::vector<Model*> loadedModels;
+std::vector<Model*> lightDebugModels;
+std::vector<Model*> animatingDoorModels;
+Model* testingModel;
+bool isTestingModel = false;
+void CheckingValues(Model* testModel, float x, float y, float z);
+bool isfirstDoorOpen = false;
+void AnimationModels(float deltaTime);
 int main()
 {
 
@@ -172,19 +165,431 @@ int main()
     Shader lightSource("Shaders/lighting.vert", "Shaders/lighting.frag");
 
 
-    Model* backpack = new Model((char*)"Models/Backpack/backpack.obj", false,true);
-    Model* LightSphere = new Model((char*)"Models/DefaultSphere/Sphere_1_unit_Radius.ply", false, true);
-    Model* pointLightModel= new Model();
+
+#pragma region ModelLoading
+
+
+#pragma region Wall Model
+    Model* wall = new Model((char*)"Models/SpaceStation/SM_Env_Construction_Wall_02_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+
+    // wallcopy  Straight
+    for (size_t i = 0; i < 4; i++)
+    {
+        for (size_t j = 0; j < 5; j++)
+        {
+            Model* wallCopy = new Model();
+            wallCopy->meshes = std::vector<Mesh>(wall->meshes.begin(), wall->meshes.end());
+
+           // wallCopy->transform.SetTranslation(glm::vec3(j*10, i * 5, 0));
+            wallCopy->transform.SetTranslation(glm::vec3(i*10, j * 5, 0));
+            loadedModels.push_back(wallCopy);
+            animatingDoorModels.push_back(wallCopy);
+        }
+      
+    }
+
+
+
+    // wallcopy  right
+    for (size_t i = 0; i < 5; i++)
+    {
+        for (size_t j = 0; j < 5; j++)
+        {
+            Model* wallCopy = new Model();
+            wallCopy->meshes = std::vector<Mesh>(wall->meshes.begin(), wall->meshes.end());
+
+            wallCopy->transform.SetTranslation(glm::vec3(40, i * 5, j * 10));
+            wallCopy->transform.SetRotation(-90,glm::vec3(0, 1, 0));
+            loadedModels.push_back(wallCopy);
+        }
+
+    }
+    // wallcopy  left
+    for (size_t i = 0; i < 5; i++)
+    {
+        for (size_t j = 0; j < 5; j++)
+        {
+            Model* wallCopy = new Model();
+            wallCopy->meshes = std::vector<Mesh>(wall->meshes.begin(), wall->meshes.end());
+
+            wallCopy->transform.SetTranslation(glm::vec3(0, i * 5, j * 10+10));
+            wallCopy->transform.SetRotation(90, glm::vec3(0, 1, 0));
+            loadedModels.push_back(wallCopy);
+        }
+
+    }
+  
+#pragma endregion
+
+#pragma region Floor Model
+    Model* floor = new Model((char*)"Models/SpaceStation/SM_Env_Floor_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    for (size_t i = 0; i < 8; i++)
+    {
+        for (size_t j = 0; j < 10; j++)
+        {
+            Model* floorCopy = new Model();
+            floorCopy->meshes = std::vector<Mesh>(floor->meshes.begin(), floor->meshes.end());
+
+            //floorCopy->transform.SetTranslation(glm::vec3(j * 10, i * 5, 0));
+            floorCopy->transform.SetTranslation(glm::vec3(5+i*5, 0, 0+j*5));
+            loadedModels.push_back(floorCopy);
+        }
+
+    }
+#pragma endregion
+
+
+#pragma region ceiling
+
+    Model* ceiling = new Model((char*)"Models/SpaceStation/SM_Env_Ceiling_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+
+    for (size_t i = 0; i < 8; i++)
+    {
+        for (size_t j = 0; j < 10; j++)
+        {
+            Model* ceilingCopy = new Model();
+            ceilingCopy->meshes = std::vector<Mesh>(ceiling->meshes.begin(), ceiling->meshes.end());
+
+            //floorCopy->transform.SetTranslation(glm::vec3(j * 10, i * 5, 0));
+            ceilingCopy->transform.SetTranslation(glm::vec3(5 + i * 5, 25, 5 + j * 5));
+            loadedModels.push_back(ceilingCopy);
+        }
+
+    }
+#pragma endregion
+
+#pragma region rail
+    Model* constructionBlock = new Model((char*)"Models/SpaceStation/SM_Env_Construction_Block_06_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+
+    //straight rails
+    for (size_t i = 0; i < 8; i++)
+    {
+        Model* constructionBlockCopy = new Model();
+        constructionBlockCopy->meshes = std::vector<Mesh>(constructionBlock->meshes.begin(), constructionBlock->meshes.end());
+        constructionBlockCopy->transform.SetTranslation(glm::vec3(5+(i*5), 15.0f, 25.0f));
+        constructionBlockCopy->transform.SetRotation(180,glm::vec3(1,0,0));
+        loadedModels.push_back(constructionBlockCopy);
+    }
    
-    pointLightModel->meshes = std::vector<Mesh>(LightSphere->meshes.begin(), LightSphere->meshes.end());
+    Model* constructionBlockCopy3 = new Model();
+    constructionBlockCopy3->meshes = std::vector<Mesh>(constructionBlock->meshes.begin(), constructionBlock->meshes.end());
+    constructionBlockCopy3->transform.SetTranslation(glm::vec3(5, 15.0f, 20));
+    constructionBlockCopy3->transform.SetRotation(180, glm::vec3(1, 0, 0));
+    loadedModels.push_back(constructionBlockCopy3);
 
-    Material material( 128.0f);
 
+
+    for (size_t j = 0; j < 3; j++) 
+    {
+        float zOffset;
+        if (j < 2) {
+            zOffset = (j == 0) ? 30.0f : 35.0f;
+            for (size_t i = 0; i < 2; i++) 
+            {
+                Model* constructionBlockCopy2 = new Model();
+                constructionBlockCopy2->meshes = std::vector<Mesh>(constructionBlock->meshes.begin(), constructionBlock->meshes.end());
+                constructionBlockCopy2->transform.SetTranslation(glm::vec3(40, 5 * i, zOffset));
+                loadedModels.push_back(constructionBlockCopy2);
+            }
+        }
+        else 
+        {
+            zOffset = 40.0f;
+            Model* constructionBlockCopy2 = new Model();
+            constructionBlockCopy2->meshes = std::vector<Mesh>(constructionBlock->meshes.begin(), constructionBlock->meshes.end());
+            constructionBlockCopy2->transform.SetTranslation(glm::vec3(40, 0, zOffset));
+            loadedModels.push_back(constructionBlockCopy2);
+        }
+    }
 
   
+
+#pragma endregion
+
+
+#pragma region stairs
+    Model* stairs = new Model((char*)"Models/SpaceStation/SM_Env_Construction_Stairs_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
     
+    
+    float translations[3] = { 45, 40, 35 }; // array of z-axis translation values
+    float initialY = 0; // initial y translation value
+    float deltaY = 5; // difference between consecutive y translation values
+
+    for (int i = 0; i < 3; i++) {
+        Model* stairsCopy = new Model();
+        stairsCopy->meshes = std::vector<Mesh>(stairs->meshes.begin(), stairs->meshes.end());
+        stairsCopy->transform.SetTranslation(glm::vec3(35, initialY + i * deltaY, translations[i]));
+        stairsCopy->transform.SetRotation(-90, glm::vec3(0, 1, 0));
+        loadedModels.push_back(stairsCopy);
+    }
+
+    
+#pragma endregion
+
+#pragma region panel
+
+    Model* panel = new Model((char*)"Models/SpaceStation/SM_Env_Construction_Panel_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+
+    for (size_t i = 0; i < 8; i++)
+    {
+        Model* panelCopy = new Model();
+        panelCopy->meshes = std::vector<Mesh>(panel->meshes.begin(), panel->meshes.end());
+        panelCopy->transform.SetTranslation(glm::vec3(5+(i*5.0f), 14.8f, 30.0f));
+        // panelCopy->transform.SetRotation(-90, glm::vec3(0, 1, 0));
+        loadedModels.push_back(panelCopy);
+    }
+    Model* panelCopy2 = new Model();
+    panelCopy2->meshes = std::vector<Mesh>(panel->meshes.begin(), panel->meshes.end());
+    panelCopy2->transform.SetTranslation(glm::vec3(5, 14.8f, 25.0f));
+    // panelCopy->transform.SetRotation(-90, glm::vec3(0, 1, 0));
+    loadedModels.push_back(panelCopy2);
+
+    //testingModel = panelCopy;
+    //isTestingModel = true;
+#pragma endregion
+
+
+#pragma region RailConstruction
+
+    Model* railConnector = new Model((char*)"Models/SpaceStation/SM_Env_Construction_Rail_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+
+    for (size_t i = 0; i < 14; i++) {
+        Model* railconnecorCopy = new Model();
+        railconnecorCopy->meshes = std::vector<Mesh>(railConnector->meshes.begin(), railConnector->meshes.end());
+
+        if (i < 7) {
+            railconnecorCopy->transform.SetTranslation(glm::vec3(0 + (i * 5.0f), 15.0f, 30.0f));
+        }
+        else if (i < 15) 
+        {
+            railconnecorCopy->transform.SetTranslation(glm::vec3(5 + ((i - 7) * 5.0f), 15.0f, 25.0f));
+        }
+
+        railconnecorCopy->transform.SetRotation(-90, glm::vec3(0, 1, 0));
+        loadedModels.push_back(railconnecorCopy);
+    }
+  
+    Model* railConnectorUShaped = new Model((char*)"Models/SpaceStation/SM_Env_Construction_Rail_03_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    Model* railConnectorUShapedCopy = new Model();
+    railConnectorUShapedCopy->meshes = std::vector<Mesh>(railConnectorUShaped->meshes.begin(), railConnectorUShaped->meshes.end());
+    railConnectorUShapedCopy->transform.SetTranslation(glm::vec3(5,15,20));
+    railConnectorUShapedCopy->transform.SetRotation(90, glm::vec3(0, 1, 0));
+    loadedModels.push_back(railConnectorUShapedCopy);
+ 
+    //testingModel = railConnectorUShapedCopy;
+    //isTestingModel = true;
+
+#pragma endregion
+
+
+#pragma region CeilingLight
+
+    Model* ceilingLight = new Model((char*)"Models/SpaceStation/SM_Prop_Light_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+  
+
+    for (size_t j = 0; j < 9; j++) {
+        float zOffset;
+        if (j < 3) {
+            zOffset = 5.0f;
+        }
+        else if (j < 6) {
+            zOffset = 20.0f;
+        }
+        else {
+            zOffset = 40.0f;
+        }
+
+        size_t i = j % 3;
+        Model* CeilingCentrifugeCopy = new Model();
+        CeilingCentrifugeCopy->meshes = std::vector<Mesh>(ceilingLight->meshes.begin(), ceilingLight->meshes.end());
+        CeilingCentrifugeCopy->transform.SetTranslation(glm::vec3(10 + (i * 10), 26.0f, zOffset));
+        loadedModels.push_back(CeilingCentrifugeCopy);
+    }
+   
+
+  /*  testingModel = CeilingCentrifugeCopy;
+    isTestingModel = true;*/
+
+#pragma endregion
+
+
+#pragma region Plane                                                                                                                                                                                                              www
+
+    Model* plane = new Model((char*)"Models/SpaceStation/SM_Prop_Shuttle_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    
+    plane->transform.SetTranslation(glm::vec3(20, 0, 35));
+    plane->transform.SetRotation(180, glm::vec3(0, 1, 0));
+
+    loadedModels.push_back(plane);
+  // testingModel = plane;
+  // isTestingModel = true;
+
+#pragma endregion
+
+
+#pragma region desk
+    Model* desk = new Model((char*)"Models/SpaceStation/SM_Prop_Desk_Lab_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    desk->transform.SetTranslation(glm::vec3(10, 0, 40));
+    desk->transform.SetRotation(-40.0f, glm::vec3(0, 1, 0));
+    loadedModels.push_back(desk);
+
+
+    Model* desk2 = new Model((char*)"Models/SpaceStation/SM_Prop_Desk_Lab_02_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    desk2->transform.SetTranslation(glm::vec3(5, 0, 38));
+    loadedModels.push_back(desk2);
+
+
+    Model* desk3 = new Model((char*)"Models/SpaceStation/SM_Prop_ControlDesk_03_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    desk3->transform.SetTranslation(glm::vec3(17, 0, 46));
+    desk3->transform.SetScale(glm::vec3(0.85f));
+    loadedModels.push_back(desk3);
+
+    Model* deskLamp = new Model((char*)"Models/SpaceStation/SM_Item_Lamp_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    deskLamp->transform.SetTranslation(glm::vec3(18, 2.3f, 45.8f));
+    deskLamp->transform.SetRotation(-70,glm::vec3(0,1,0));
+    loadedModels.push_back(deskLamp);
+//    testingModel = deskLamp;
+//isTestingModel = true;
+
+
+#pragma endregion
+
+#pragma region DoorWayAndDoor
+
+    Model* doorway = new Model((char*)"Models/SpaceStation/SM_Env_ControlRoom_Doorway_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+
+    doorway->transform.SetTranslation(glm::vec3(0.5f, 15, 24.8f));
+    doorway->transform.SetRotation(90, glm::vec3(0, 1, 0));
+    loadedModels.push_back(doorway);
 
    
+
+    Model* door = new Model((char*)"Models/SpaceStation/SM_Env_ControlRoom_Door_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    door->transform.SetTranslation(glm::vec3(0.4, 15, 28.4f));
+    door->transform.SetRotation(90, glm::vec3(0, 1, 0));
+    loadedModels.push_back(door);
+
+    //testingModel = door;
+    //isTestingModel = true;
+
+#pragma endregion
+
+
+#pragma region satelitte
+
+    Model* satelitte = new Model((char*)"Models/SpaceStation/SM_Prop_Satellite_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    satelitte->transform.SetTranslation(glm::vec3(10, 0, 12));
+    satelitte->transform.SetRotation(45, glm::vec3(0, 1, 0));
+    satelitte->transform.SetScale(glm::vec3(0.75f));
+
+    loadedModels.push_back(satelitte);
+     //testingModel = satelitte;
+     //isTestingModel = true;
+
+#pragma endregion
+
+#pragma region rocket
+
+    Model* rocket = new Model((char*)"Models/SpaceStation/SM_Prop_Rocket_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    rocket->transform.SetTranslation(glm::vec3(35, 0, 10));
+   // rocket->transform.SetRotation(0, glm::vec3(0, 1, 0));
+    loadedModels.push_back(rocket);
+
+
+#pragma endregion
+
+#pragma region Props
+    Model* stirCase = new Model((char*)"Models/SpaceStation/SM_Prop_Stairs_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    stirCase->transform.SetTranslation(glm::vec3(4, 0, 33.0f));
+    stirCase->transform.SetRotation(-110, glm::vec3(0, 1, 0));
+    loadedModels.push_back(stirCase);
+
+
+    Model* Chair = new Model((char*)"Models/SpaceStation/SM_Prop_SwivelChair_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    Chair->transform.SetTranslation(glm::vec3(8.8f, 0, 42.0f));
+    Chair->transform.SetRotation(135, glm::vec3(0, 1, 0));
+    loadedModels.push_back(Chair);
+
+
+    Model* Chair2 = new Model((char*)"Models/SpaceStation/SM_Prop_SwivelChair_04_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    Chair2->transform.SetTranslation(glm::vec3(5, 0, 40));
+    Chair2->transform.SetRotation(180, glm::vec3(0, 1, 0));
+    loadedModels.push_back(Chair2);
+
+    Model* trolley = new Model((char*)"Models/SpaceStation/SM_Prop_Trolley_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    trolley->transform.SetTranslation(glm::vec3(7.5f, 0, 33));
+    trolley->transform.SetRotation(120, glm::vec3(0, 1, 0));
+    trolley->transform.SetScale(glm::vec3(0.5f));
+    loadedModels.push_back(trolley);
+
+    Model* table = new Model((char*)"Models/SpaceStation/SM_Prop_Table_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    table->transform.SetTranslation(glm::vec3(6.5f, 0, 35.5f));
+    table->transform.SetRotation(20, glm::vec3(0, 1, 0));
+    table->transform.SetScale(glm::vec3(0.75f));
+    loadedModels.push_back(table);
+
+    Model* battery = new Model((char*)"Models/SpaceStation/SM_Prop_Battery_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    battery->transform.SetTranslation(glm::vec3(5.8f, 1.1f, 35.6f));
+    battery->transform.SetRotation(20, glm::vec3(0, 1, 0));
+    battery->transform.SetScale(glm::vec3(0.5f));
+    loadedModels.push_back(battery);
+
+
+    Model* battery2 = new Model((char*)"Models/SpaceStation/SM_Prop_Battery_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    battery2->transform.SetTranslation(glm::vec3(6.9f, 1.1f, 35.4f));
+    battery2->transform.SetRotation(60, glm::vec3(0, 1, 0));
+    battery2->transform.SetScale(glm::vec3(0.5f));
+    loadedModels.push_back(battery2);
+
+
+    Model* tape = new Model((char*)"Models/SpaceStation/SM_Prop_Tape_02_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    tape->transform.SetTranslation(glm::vec3(3, 0, 20));
+    loadedModels.push_back(tape);
+
+    Model* tapeCopy = new Model();
+    tapeCopy->meshes = std::vector<Mesh>(tape->meshes.begin(), tape->meshes.end());
+    tapeCopy->transform.SetTranslation(glm::vec3(7, 0, 18.5f));
+    tapeCopy->transform.SetRotation(-130,glm::vec3(0, 1, 0));
+    loadedModels.push_back(tapeCopy);
+
+    Model* cabinet = new Model((char*)"Models/SpaceStation/SM_Prop_Cabinets_02_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    cabinet->transform.SetTranslation(glm::vec3(1, 0, 24));
+    cabinet->transform.SetRotation(90,glm::vec3(0, 1, 0));
+    loadedModels.push_back(cabinet);
+
+    Model* server = new Model((char*)"Models/SpaceStation/SM_Prop_Server_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+
+    server->transform.SetTranslation(glm::vec3(1.2f, 0, 18.5f));
+    server->transform.SetRotation(90, glm::vec3(0, 1, 0));
+    loadedModels.push_back(server);
+
+    Model* serverCopy = new Model();
+    serverCopy->meshes = std::vector<Mesh>(server->meshes.begin(), server->meshes.end());
+    serverCopy->transform.SetTranslation(glm::vec3(1.2f, 0, 16.5f));
+    serverCopy->transform.SetRotation(90, glm::vec3(0, 1, 0));
+    loadedModels.push_back(serverCopy);
+
+#pragma endregion
+
+
+
+
+    //Light models
+    Model* LightSphere = new Model((char*)"Models/DefaultSphere/Sphere_1_unit_Radius.ply", false, true);
+
+    Model* pointLightModel = new Model();
+    pointLightModel = &(*LightSphere);
+
+    lightDebugModels.push_back(LightSphere);
+    lightDebugModels.push_back(pointLightModel);
+    
+
+
+
+
+#pragma endregion
+    Material material( 128.0f);
+
 
 
     float vertices[] = {
@@ -240,19 +645,19 @@ int main()
     Renderer render;
   
     LightManager lightManager;
-    //Light directionLight;
-    //directionLight.lightType = LightType:: DIRECTION_LIGHT;
-    //directionLight.lightModel = LightSphere;
+    Light directionLight;
+    directionLight.lightType = LightType:: DIRECTION_LIGHT;
+    directionLight.lightModel = LightSphere;
 
 
-  /*  Light PointLight;
+    Light PointLight;
     PointLight.lightType = LightType::POINT_LIGHT;
     PointLight.lightModel = pointLightModel;
     PointLight.ambient = glm:: vec3(5);
     PointLight.specular = glm:: vec3(5);
-    PointLight.diffuse = glm:: vec3(5);*/
+    PointLight.diffuse = glm:: vec3(5);
 
-    Light spotLight;
+   /* Light spotLight;
     spotLight.lightType = LightType::SPOT_LIGHT;
     spotLight.lightModel = pointLightModel;
     spotLight.direction = glm::vec3(0, 0, -1);
@@ -260,14 +665,14 @@ int main()
     spotLight.specular = glm::vec3(5);
     spotLight.diffuse = glm::vec3(5); 
     spotLight.cutOffAngle = 15;
-    spotLight.outerCutOffAngle = 15;
+    spotLight.outerCutOffAngle = 15;*/
 
 
 
 
-    //lightManager.AddNewLight(directionLight);
-    //lightManager.AddNewLight(PointLight);
-    lightManager.AddNewLight(spotLight);
+    lightManager.AddNewLight(directionLight);
+    lightManager.AddNewLight(PointLight);
+    //lightManager.AddNewLight(spotLight);
      lightManager.SetUniforms(defaultShader.ID);
 
     
@@ -283,12 +688,11 @@ int main()
     glEnableVertexAttribArray(0);
 
   
-
-
-    float lightSize = 0.5f;
     float xPos = 0.0f;
     float yPos = 0.0f;
     float zPos = 0.0f;
+
+    float lightSize = 0.5f;
 
     float lightX = 0.0f;
     float lightY = 0.3f;
@@ -309,6 +713,15 @@ int main()
 
     double lastTime = glfwGetTime();
 
+
+
+    float updatedXPos;
+    float updatedYPos;
+    float updatedZPos;
+    char inputBufferX[256]; // Assuming a buffer size of 256 characters
+    char inputBufferY[256]; // Assuming a buffer size of 256 characters
+    char inputBufferZ[256]; // Assuming a buffer size of 256 characters
+
     while (!glfwWindowShouldClose(window))
     {
 
@@ -319,7 +732,7 @@ int main()
       
         processInput(window);
 
-    
+        AnimationModels(deltaTime);
         render.Clear();
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -343,12 +756,29 @@ int main()
 
             ImGui::NewLine();
             ImGui::PushItemWidth(100);
-            ImGui::SliderFloat("##X Position", &xPos, -10.0f, 10.0f, "X: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 10);
-            ImGui::SliderFloat("##Y Position", &yPos, -10.0f, 10.0f, "Y: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 10);
-            ImGui::SliderFloat("##Z Position", &zPos, -10.0f, 10.0f, "Z: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 10); ImGui::Text("POSITION");
+            ImGui::SliderFloat("##X Position", &xPos, -10, 10, "X: %.1f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SameLine(0, 20);
+            ImGui::SliderFloat("##Y Position", &yPos, -10, 10, "Y: %.1f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SameLine(0, 20);
+            ImGui::SliderFloat("##Z Position", &zPos, -10, 10, "Z: %.1f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SameLine(0, 20); ImGui::Text("POSITION");
+
+
+
+            snprintf(inputBufferX, sizeof(inputBufferX), "%.1f", xPos);
+            ImGui::InputText("##X Position Input", inputBufferX, IM_ARRAYSIZE(inputBufferX));
+            xPos = atof(inputBufferX);
+
+            snprintf(inputBufferY, sizeof(inputBufferY), "%.1f", yPos);
+            ImGui::InputText("##Y Position Input", inputBufferY, IM_ARRAYSIZE(inputBufferY));
+            yPos = atof(inputBufferY);
+
+            snprintf(inputBufferZ, sizeof(inputBufferZ), "%.1f", zPos);
+            ImGui::InputText("##Z Position Input", inputBufferZ, IM_ARRAYSIZE(inputBufferZ));
+            zPos = atof(inputBufferZ);
+
+
+            CheckingValues(testingModel, xPos, yPos, zPos);
 
             ImGui::NewLine();
             ImGui::PushItemWidth(100);
@@ -384,7 +814,7 @@ int main()
 
             // ImGui::ColorPicker3("LightColor", 1.0f, 1.0f, 1.0f);
 
-
+           // constructionBlock->transform.position =(glm::vec3(xPos, yPos, zPos));
 
 
 
@@ -418,8 +848,13 @@ int main()
         lightSource.setMat4("projection", _projection);
         lightSource.setVec3("objCol", color[0], color[1], color[2]);
         lightSource.setMat4("view", _view);
-        pointLightModel->transform.position = lightPos;
-        pointLightModel->Draw(lightSource);
+
+        for (size_t i = 0; i < lightDebugModels.size(); i++)
+        {
+            lightDebugModels[i]->Draw(lightSource);
+        }
+        //pointLightModel->transform.position = lightPos;
+       
     
 
       
@@ -435,9 +870,13 @@ int main()
          glm::mat4 view2 = camera.GetViewMatrix();
          defaultShader.setMat4("projection", projection2);
          defaultShader.setMat4("view", view2);
-         backpack->transform.position = glm::vec3(0);
-         backpack->Draw(defaultShader);
-
+        // backpack->transform.position = glm::vec3(0);
+        // backpack->Draw(defaultShader);
+         for (size_t i = 0; i < loadedModels.size(); i++)
+         {
+           
+             loadedModels[i]->Draw(defaultShader);
+         }
 
      
 
@@ -482,6 +921,78 @@ int main()
 
 
 
+void AnimationModels(float deltaTime)
+{
+    if (isAnimationKeyPressed)
+    {
+        for (size_t i = 5; i < 10; i++)
+        {
+            if (animatingDoorModels[i]->transform.position.x>=0)
+            {
+                animatingDoorModels[i]->transform.position -= glm::vec3(1, 0, 0)*deltaTime;
+
+            }
+            else
+            {
+                isfirstDoorOpen = true;
+            }
+        }
+
+        for (size_t i = 10; i < 15; i++)
+        {
+            if (animatingDoorModels[i]->transform.position.x <= 30)
+            {
+                animatingDoorModels[i]->transform.position += glm::vec3(1, 0, 0) * deltaTime;
+
+            }
+            else
+            {
+                isfirstDoorOpen = true;
+            }
+        }
+
+        if (isfirstDoorOpen)
+        {
+            for (size_t i = 0; i < 10; i++)
+            {
+                if (animatingDoorModels[i]->transform.position.x >= -10.0f)
+                {
+                    animatingDoorModels[i]->transform.position -= glm::vec3(1, 0, 0) * deltaTime;
+
+                }
+                else
+                {
+                    isAnimationKeyPressed = false;
+                }
+            }
+
+            for (size_t i = 10; i < 20; i++)
+            {
+                if (animatingDoorModels[i]->transform.position.x <= 40)
+                {
+                    animatingDoorModels[i]->transform.position += glm::vec3(1, 0, 0) * deltaTime;
+
+                }
+                else
+                {
+                    isfirstDoorOpen = true;
+                }
+            }
+        }
+   
+
+
+    }
+}
+
+void CheckingValues(Model* testModel, float x, float y, float z)
+{
+    if (isTestingModel)
+    {
+        testModel->transform.position = glm::vec3(x, y, z);
+
+    }
+}
 
 
 void processInput(GLFWwindow* window)
@@ -489,7 +1000,7 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-
+    float cameraMoveSpeed = 5.0f;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
 
@@ -500,7 +1011,7 @@ void processInput(GLFWwindow* window)
         }
         else
         {
-            camera.ProcessKeyboard(FORWARD, deltaTime);
+            camera.ProcessKeyboard(FORWARD, deltaTime* cameraMoveSpeed);
         }
 
 
@@ -515,7 +1026,7 @@ void processInput(GLFWwindow* window)
         }
         else
         {
-            camera.ProcessKeyboard(BACKWARD, deltaTime);
+            camera.ProcessKeyboard(BACKWARD, deltaTime* cameraMoveSpeed);
         }
     }
 
@@ -528,7 +1039,7 @@ void processInput(GLFWwindow* window)
         }
         else
         {
-            camera.ProcessKeyboard(LEFT, deltaTime);
+            camera.ProcessKeyboard(LEFT, deltaTime* cameraMoveSpeed);
 
         }
 
@@ -543,7 +1054,7 @@ void processInput(GLFWwindow* window)
         }
         else
         {
-            camera.ProcessKeyboard(RIGHT, deltaTime);
+            camera.ProcessKeyboard(RIGHT, deltaTime* cameraMoveSpeed);
 
         }
 

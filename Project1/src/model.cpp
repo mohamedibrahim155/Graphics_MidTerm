@@ -26,12 +26,13 @@ Model::Model( std::string const& path, bool gamma = false,bool isFlip = false)
 
 void Model::Draw(Shader& shader)
 {
-    glm::mat4 matModel = transform.getModelMatrix();
-    shader.setMat4("model", matModel);
+  
     if (!isVisible)
     {
         return;
     }
+    glm::mat4 matModel = transform.getModelMatrix();
+    shader.setMat4("model", matModel);
     for (unsigned int i = 0; i < meshes.size(); i++)
         meshes[i].meshDraw(shader);
 }
@@ -118,7 +119,20 @@ void Model::processNode(aiNode* node, const aiScene* scene)
             //vertex.Bitangent = vector;
         }
         else
+        {
             vertex.TexCoords = glm::vec2(0.0f, 0.0f);
+
+        }
+
+        if (mesh->HasVertexColors(0))
+        {
+            aiColor4D color = mesh->mColors[0][i];
+            vertex.vRGB = glm::vec4(color.r, color.g, color.b,color.a);
+        }
+        else
+        {
+            vertex.vRGB = glm::vec4(1.0f, 1.0f, 1.0f,1.0f);
+        }
 
         vertices.push_back(vertex);
     }
