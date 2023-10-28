@@ -32,7 +32,7 @@
 #include "Light.h"
 #include "Transform.h"
 #include"LightManager.h"
-
+#include <random>
 
 
 bool switchCamera = false;
@@ -108,11 +108,15 @@ float lastFrame = 0.0f;
 std::vector<Model*> loadedModels;
 std::vector<Model*> lightDebugModels;
 std::vector<Model*> animatingDoorModels;
+std::vector<Model*> starsModels;
 Model* testingModel;
 bool isTestingModel = false;
 void CheckingValues(Model* testModel, float x, float y, float z);
 bool isfirstDoorOpen = false;
 void AnimationModels(float deltaTime);
+
+int randomNumberGen(int min, int max);
+void LoadStarsModel();
 int main()
 {
 
@@ -616,7 +620,7 @@ int main()
     Material material( 128.0f);
 
 
-
+    LoadStarsModel(); // laoding starts as sphere model
     
     Renderer render;
 
@@ -898,7 +902,10 @@ int main()
             lightDebugModels[i]->transform.scale =glm::vec3(0.5f); // setting scale of the light object sphere 
             lightDebugModels[i]->Draw(lightSource);
         }
-       
+        for (size_t i = 0; i < starsModels.size(); i++)
+        {
+            starsModels[i]->Draw(lightSource);
+        }
     
 
 
@@ -916,7 +923,7 @@ int main()
            
              loadedModels[i]->Draw(defaultShader);
          }
-
+      
 
          if (isWireFrame)
          {
@@ -940,8 +947,31 @@ int main()
 }
 
 
+void LoadStarsModel()
+{
+   
+    Model* stars = new Model((char*)"Models/DefaultSphere/Sphere_1_unit_Radius.ply", false, true);
+    //lightDebugModels.push_back(directionLightModel);
+    for (size_t i = 0; i < 100; i++)
+    {
+        int MinX = randomNumberGen(0, 50);
+        int MaxY = randomNumberGen(0, 20);
+        Model* starsCopy = new Model();
+        starsCopy->meshes = std::vector<Mesh>(stars->meshes.begin(), stars->meshes.end());
+        starsCopy->transform.SetTranslation(glm::vec3(MinX, MaxY,-15));
+        starsCopy->transform.SetScale(glm::vec3(0.02f));
+        starsModels.push_back(starsCopy);
+    }
+}
 
-
+int randomNumberGen(int min, int max)
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(min, max - 1);
+    int random_number = dis(gen);
+    return random_number;
+}
 void AnimationModels(float deltaTime)
 {
     if (isAnimationKeyPressed)
