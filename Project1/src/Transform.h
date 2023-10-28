@@ -22,6 +22,17 @@ public:
 	glm::mat4 modelMatrix;
 	void SetModelMatrix(const glm::mat4 modleMatrix);
 
+	glm::vec3 GetModelDirection()
+	{
+		// Extract the forward vector from the model's rotation matrix
+		glm::vec3 direction = glm::vec3(getModelMatrix()[2][0], getModelMatrix()[2][1], getModelMatrix()[2][2]);
+
+		// Normalize the direction vector
+		direction = glm::normalize(direction);
+
+		return direction;
+	}
+
 private:
 
 };

@@ -219,6 +219,7 @@ void LightManager::SetUniforms(GLuint shaderID)
         this->lightList[i].constant_UL = glGetUniformLocation(shaderID, ("lights[" + index + "].constant").c_str());
         this->lightList[i].cuttOffAngle_UL = glGetUniformLocation(shaderID, ("lights[" + index + "].cutOff").c_str());
         this->lightList[i].outerCutOffAngle_UL = glGetUniformLocation(shaderID, ("lights[" + index + "].outerCutOff").c_str());
+        this->lightList[i].color_UL = glGetUniformLocation(shaderID, ("lights[" + index + "].color").c_str());
     }
 
 }
@@ -307,7 +308,16 @@ void LightManager::UpdateUniformValues(GLuint shaderID)
 
         glUniform3f(lightList[index].ambient_UL, lightList[index].ambient.x, lightList[index].ambient.y, lightList[index].ambient.z);
 
-        glUniform3f(lightList[index].direction_UL,lightList[index].direction.x, lightList[index].direction.y,lightList[index].direction.z);
+        //if (lightList[index].lightType == SPOT_LIGHT || lightList[index].lightType == POINT_LIGHT)
+        //{
+        //    glUniform3f(lightList[index].direction_UL, lightList[index].lightModel->transform.GetModelDirection().x, lightList[index].lightModel->transform.GetModelDirection().y, lightList[index].lightModel->transform.GetModelDirection().z);
+
+        //}
+        //else
+        {
+
+            glUniform3f(lightList[index].direction_UL, lightList[index].direction.x, lightList[index].direction.y, lightList[index].direction.z);
+        }
 
         glUniform1i(lightList[index].lightType_UL,  (int)lightList[index].lightType);
 
@@ -324,6 +334,8 @@ void LightManager::UpdateUniformValues(GLuint shaderID)
         glUniform1f(lightList[index].cuttOffAngle_UL, glm::cos(glm::radians( lightList[index].cutOffAngle)));
 
         glUniform1f(lightList[index].outerCutOffAngle_UL,  glm::cos(glm::radians(lightList[index].outerCutOffAngle)));
+
+        glUniform3f(lightList[index].color_UL,  lightList[index].color.r, lightList[index].color.g, lightList[index].color.b);
     }
 
 

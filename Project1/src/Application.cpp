@@ -28,10 +28,8 @@
 #include "Renderer.h"
 #include "VertexArray.h"
 #include  "model.h"
-
 #include "material.h"
 #include "Light.h"
-
 #include "Transform.h"
 #include"LightManager.h"
 
@@ -53,6 +51,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
+
+
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -85,17 +85,18 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
     if (key == GLFW_KEY_R && action == GLFW_PRESS)
     {
-        isAnimationKeyPressed = true;
+        isAnimationKeyPressed = !isAnimationKeyPressed;
     }
 
 }
+
 
 
 const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
 
 
-Camera camera(glm::vec3(5.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(10, 2, 20));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -121,8 +122,6 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-
 
 
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "KAIZOKU", NULL, NULL);
@@ -157,18 +156,16 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
 
-
-   // Shader Shadersrc("Shaders/Shader.vert", "Shaders/Shader.frag");
     Shader defaultShader("Shaders/Light_VertexShader.vert", "Shaders/Light_FragmentShader.frag");
 
 
     Shader lightSource("Shaders/lighting.vert", "Shaders/lighting.frag");
 
 
-
+ ////////// Loading every models
 #pragma region ModelLoading
 
-
+// Loading all the models here
 #pragma region Wall Model
     Model* wall = new Model((char*)"Models/SpaceStation/SM_Env_Construction_Wall_02_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
 
@@ -188,6 +185,24 @@ int main()
       
     }
 
+    // wallcopy  back
+    for (size_t i = 0; i < 4; i++)
+    {
+        for (size_t j = 0; j < 5; j++)
+        {
+            Model* wallCopy = new Model();
+            wallCopy->meshes = std::vector<Mesh>(wall->meshes.begin(), wall->meshes.end());
+
+            // wallCopy->transform.SetTranslation(glm::vec3(j*10, i * 5, 0));
+            wallCopy->transform.SetTranslation(glm::vec3(10+(i * 10), j * 5, 50));
+            wallCopy->transform.SetRotation(180, glm::vec3(0, 1, 0));
+            loadedModels.push_back(wallCopy);
+            //testingModel = wallCopy;
+            //isTestingModel = true;
+           
+        }
+
+    }
 
 
     // wallcopy  right
@@ -499,6 +514,8 @@ int main()
 #pragma endregion
 
 #pragma region Props
+
+    //Loading prop models
     Model* stirCase = new Model((char*)"Models/SpaceStation/SM_Prop_Stairs_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
     stirCase->transform.SetTranslation(glm::vec3(4, 0, 33.0f));
     stirCase->transform.SetRotation(-110, glm::vec3(0, 1, 0));
@@ -569,21 +586,29 @@ int main()
     serverCopy->transform.SetRotation(90, glm::vec3(0, 1, 0));
     loadedModels.push_back(serverCopy);
 
+    Model* tableEmpty = new Model((char*)"Models/SpaceStation/SM_Prop_Desk_01_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    tableEmpty->transform.SetTranslation(glm::vec3(5, 0, 28.0f));
+    tableEmpty->transform.SetRotation(-45, glm::vec3(0, 1, 0));
+    loadedModels.push_back(tableEmpty);
+
+    Model* Chair3 = new Model((char*)"Models/SpaceStation/SM_Prop_SwivelChair_04_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    Chair3->transform.SetTranslation(glm::vec3(4.0f, 0, 30));
+    Chair3->transform.SetRotation(180, glm::vec3(0, 1, 0));
+    loadedModels.push_back(Chair3);
+
+    Model* Monitor = new Model((char*)"Models/SpaceStation/SM_Prop_Monitor_03_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    Monitor->transform.SetTranslation(glm::vec3(4.0f, 1.5f, 27));
+    Monitor->transform.SetRotation(-45, glm::vec3(0, 1, 0));
+    loadedModels.push_back(Monitor);
+
+    Model* CelingLight = new Model((char*)"Models/SpaceStation/SM_Env_Ceiling_Light_04_xyz_n_rgba_uv_flatshaded_xyz_n_rgba_uv.ply", false, true);
+    CelingLight->transform.SetTranslation(glm::vec3(21.5f, 10.2f, 28.0));
+    //CelingLight->transform.SetRotation(-45, glm::vec3(0, 1, 0));
+    loadedModels.push_back(CelingLight);
+    //testingModel = CelingLight;
+    //isTestingModel = true;
+
 #pragma endregion
-
-
-
-
-    //Light models
-    Model* LightSphere = new Model((char*)"Models/DefaultSphere/Sphere_1_unit_Radius.ply", false, true);
-
-    Model* pointLightModel = new Model();
-    pointLightModel = &(*LightSphere);
-
-    lightDebugModels.push_back(LightSphere);
-    lightDebugModels.push_back(pointLightModel);
-    
-
 
 
 
@@ -592,135 +617,259 @@ int main()
 
 
 
-    float vertices[] = {
-        // positions          // normals           // texture coords
-   -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-    0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-    0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-    0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-   -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-   -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-
-   -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-    0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-   -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
-   -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-
-   -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-   -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-   -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-   -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-   -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-   -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-    0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-    0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-    0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-    0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-    0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-    0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-   -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-    0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-    0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-    0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-   -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-   -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-
-   -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-    0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-   -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-   -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-    };
-
-
-
-
-
-
+    
     Renderer render;
-  
+
+    // lightObject reference declration and assigning to model
+// applying required parameters for light
+
+#pragma region Mulitple LightHandler
+
+
+    // lightObject reference declration and assigning to model
+    // applying required parameters for light
+
+
+
+
+
+
+
     LightManager lightManager;
+
+    Model* directionLightModel = new Model((char*)"Models/DefaultSphere/Sphere_1_unit_Radius.ply", false, true);
+    lightDebugModels.push_back(directionLightModel);
+  
     Light directionLight;
     directionLight.lightType = LightType:: DIRECTION_LIGHT;
-    directionLight.lightModel = LightSphere;
+    directionLight.lightModel = directionLightModel;
+    directionLight.ambient =  glm::vec3(0.1f);
+    directionLight.specular = glm::vec3(0.1f);
+    directionLight.diffuse =  glm::vec3(0.1f);
+
+    Model* SpotLightModel = new Model();
+    SpotLightModel = &(*directionLightModel);
+    lightDebugModels.push_back(SpotLightModel);
+    SpotLightModel->transform.SetTranslation(glm::vec3(10, 20.5f, 5));
+
+    Light SpotLight1;
+    SpotLight1.lightType = LightType::SPOT_LIGHT;
+    SpotLight1.lightModel = SpotLightModel;
+    SpotLight1.ambient = glm:: vec3(5);
+    SpotLight1.specular = glm:: vec3(5);
+    SpotLight1.diffuse = glm:: vec3(5);
+    SpotLight1.direction = glm::vec3(0, -1, 0);
+    SpotLight1.outerCutOffAngle = 20.0f;
+    SpotLight1.cutOffAngle = 18.0f;
 
 
-    Light PointLight;
-    PointLight.lightType = LightType::POINT_LIGHT;
-    PointLight.lightModel = pointLightModel;
-    PointLight.ambient = glm:: vec3(5);
-    PointLight.specular = glm:: vec3(5);
-    PointLight.diffuse = glm:: vec3(5);
 
-   /* Light spotLight;
-    spotLight.lightType = LightType::SPOT_LIGHT;
-    spotLight.lightModel = pointLightModel;
-    spotLight.direction = glm::vec3(0, 0, -1);
-    spotLight.ambient = glm::vec3(5);
-    spotLight.specular = glm::vec3(5);
-    spotLight.diffuse = glm::vec3(5); 
-    spotLight.cutOffAngle = 15;
-    spotLight.outerCutOffAngle = 15;*/
+    Model* SpotLight2Model = new Model();
+    SpotLight2Model->meshes = std::vector<Mesh>(directionLightModel->meshes.begin(), directionLightModel->meshes.end());
+    SpotLight2Model->transform.SetTranslation(glm::vec3(20, 20.5f, 5));
+    lightDebugModels.push_back(SpotLight2Model);
+
+    Light spotLight2;
+    spotLight2.lightType = LightType::SPOT_LIGHT;
+    spotLight2.lightModel = SpotLight2Model;
+    spotLight2.ambient = glm::vec3(100);
+    spotLight2.specular = glm::vec3(100);
+    spotLight2.diffuse = glm::vec3(100);
+    spotLight2.direction = glm::vec3(0, -1, 0);
+    spotLight2.constant = 1;
+    spotLight2.linear = 1;
+    spotLight2.quadratic = 1;
+    spotLight2.cutOffAngle = 15;
+    spotLight2.outerCutOffAngle = 20; 
+
+    Model* SpotLightModel3 = new Model();
+    SpotLightModel3->meshes = std::vector<Mesh>(directionLightModel->meshes.begin(), directionLightModel->meshes.end());
+    SpotLightModel3->transform.SetTranslation(glm::vec3(30, 20.5f, 5));
+    lightDebugModels.push_back(SpotLightModel3);
+
+    Light Spotlight3;
+    Spotlight3.lightType = LightType::SPOT_LIGHT;
+    Spotlight3.lightModel = SpotLightModel3;
+    Spotlight3.ambient = glm::vec3(100);
+    Spotlight3.specular = glm::vec3(100);
+    Spotlight3.diffuse = glm::vec3(100);
+    Spotlight3.direction = glm::vec3(0, -1, 0);
+    Spotlight3.constant = 1;
+    Spotlight3.linear = 1;
+    Spotlight3.quadratic = 1;
+    Spotlight3.cutOffAngle = 15;
+    Spotlight3.outerCutOffAngle = 20;
 
 
 
+    Model* SpotLightModel4 = new Model();
+    SpotLightModel4->meshes = std::vector<Mesh>(directionLightModel->meshes.begin(), directionLightModel->meshes.end());
+    SpotLightModel4->transform.SetTranslation(glm::vec3(10, 20.5f, 20));
+    lightDebugModels.push_back(SpotLightModel4);
+
+    Light SpotLight4;
+    SpotLight4.lightType = LightType::SPOT_LIGHT;
+    SpotLight4.lightModel = SpotLightModel4;
+
+   SpotLight4.ambient = glm::vec3(100);
+   SpotLight4.specular = glm::vec3(100);
+   SpotLight4.diffuse = glm::vec3(100);
+   SpotLight4.direction = glm::vec3(0, -1, 0);
+   SpotLight4.constant = 1;
+   SpotLight4.linear = 1;
+   SpotLight4.quadratic = 1;
+   SpotLight4.cutOffAngle = 15;
+   SpotLight4.outerCutOffAngle = 20;
+
+    
+
+
+
+    Model* SpotLightModel5 = new Model();
+    SpotLightModel5->meshes = std::vector<Mesh>(directionLightModel->meshes.begin(), directionLightModel->meshes.end());
+    SpotLightModel5->transform.SetTranslation(glm::vec3(20, 20.5f, 20));
+    lightDebugModels.push_back(SpotLightModel5);
+
+    Light spotLight5;
+    spotLight5.lightType = LightType::SPOT_LIGHT;
+    spotLight5.lightModel = SpotLightModel5;
+    spotLight5.ambient = glm::vec3(100);
+    spotLight5.specular = glm::vec3(100);
+    spotLight5.diffuse = glm::vec3(100);
+    spotLight5.direction = glm::vec3(0, -1, 0);
+    spotLight5.constant = 1;
+    spotLight5.linear = 1;
+    spotLight5.quadratic = 1;
+    spotLight5.cutOffAngle = 15;
+    spotLight5.outerCutOffAngle = 20;
+
+    Model* SpotLightModel6 = new Model();
+    SpotLightModel6->meshes = std::vector<Mesh>(directionLightModel->meshes.begin(), directionLightModel->meshes.end());
+    SpotLightModel6->transform.SetTranslation(glm::vec3(30, 20.5f, 20));
+    lightDebugModels.push_back(SpotLightModel6);
+
+    Light SpotLight6;
+    SpotLight6.lightType = LightType::SPOT_LIGHT;
+    SpotLight6.lightModel = SpotLightModel6;
+    SpotLight6.ambient =   glm::vec3(10);
+    SpotLight6.specular =  glm::vec3(10);
+    SpotLight6.diffuse =   glm::vec3(10);
+    SpotLight6.direction = glm::vec3(0, -1, 0);
+    SpotLight6.constant = 0.1f;
+    SpotLight6.linear = 0.1f;
+    SpotLight6.quadratic = 0.1f;
+    SpotLight6.cutOffAngle = 20;
+    SpotLight6.outerCutOffAngle = 20;
+
+
+    Model* pointLightModel1 = new Model();
+    pointLightModel1->meshes = std::vector<Mesh>(directionLightModel->meshes.begin(), directionLightModel->meshes.end());
+    pointLightModel1->transform.SetTranslation(glm::vec3(10, 20.5f, 40));
+    lightDebugModels.push_back(pointLightModel1);
+
+    Light pointLight1;
+    pointLight1.lightType = LightType::POINT_LIGHT;
+    pointLight1.lightModel = pointLightModel1;
+    pointLight1.ambient =  glm::vec3(2);
+    pointLight1.specular = glm::vec3(2);
+    pointLight1.diffuse =  glm::vec3(2);
+
+    Model* pointLightModel2 = new Model();
+    pointLightModel2->meshes = std::vector<Mesh>(directionLightModel->meshes.begin(), directionLightModel->meshes.end());
+    pointLightModel2->transform.SetTranslation(glm::vec3(20, 20.5f, 40));
+    lightDebugModels.push_back(pointLightModel2);
+
+    Light PointLight2;
+    PointLight2.lightType = LightType::POINT_LIGHT;
+    PointLight2.lightModel = pointLightModel2;
+    PointLight2.ambient =  glm::vec3(2);
+    PointLight2.specular = glm::vec3(2);
+    PointLight2.diffuse =  glm::vec3(2);
+
+
+    Model* pointLightModel3 = new Model();
+    pointLightModel3->meshes = std::vector<Mesh>(directionLightModel->meshes.begin(), directionLightModel->meshes.end());
+    pointLightModel3->transform.SetTranslation(glm::vec3(30, 20.5f, 40));
+    lightDebugModels.push_back(pointLightModel3);
+
+    Light PointLight3;
+    PointLight3.lightType = LightType::POINT_LIGHT;
+    PointLight3.lightModel = pointLightModel3;
+    PointLight3.ambient = glm::vec3(2);
+    PointLight3.specular = glm::vec3(2);
+    PointLight3.diffuse = glm::vec3(2);
+
+
+
+    Model* SpotLightModel7 = new Model();
+    SpotLightModel7->meshes = std::vector<Mesh>(directionLightModel->meshes.begin(), directionLightModel->meshes.end());
+    SpotLightModel7->transform.SetTranslation(glm::vec3(20, 9, 26));
+    lightDebugModels.push_back(SpotLightModel7);
+
+    Light SpotLight7;
+    SpotLight7.lightType = LightType::SPOT_LIGHT;
+    SpotLight7.lightModel = SpotLightModel7;
+    SpotLight7.ambient = glm::vec3(5);
+    SpotLight7.specular = glm::vec3(5);
+    SpotLight7.diffuse = glm::vec3(5);
+    SpotLight7.direction = glm::vec3(-1, 0, 0);
+    SpotLight7.constant = 0.1f;
+    SpotLight7.linear = 0.1f;
+    SpotLight7.quadratic = 0.1f;
+    SpotLight7.cutOffAngle = 12;
+    SpotLight7.outerCutOffAngle = 15;
+    SpotLight7.color = glm::vec3(0, 1, 0); // green color
+
+
+
+    Model* SpotLightModel8 = new Model();
+    SpotLightModel8->meshes = std::vector<Mesh>(directionLightModel->meshes.begin(), directionLightModel->meshes.end());
+    SpotLightModel8->transform.SetTranslation(glm::vec3(20, 9, 26));
+    lightDebugModels.push_back(SpotLightModel8);
+
+    Light SpotLight8;
+    SpotLight8.lightType = LightType::SPOT_LIGHT;
+    SpotLight8.lightModel = SpotLightModel8;
+    SpotLight8.ambient = glm::vec3(5);
+    SpotLight8.specular = glm::vec3(5);
+    SpotLight8.diffuse = glm::vec3(5);
+    SpotLight8.direction = glm::vec3(1, 0, 0);
+    SpotLight8.constant = 0.1f;
+    SpotLight8.linear = 0.1f;
+    SpotLight8.quadratic = 0.1f;
+    SpotLight8.cutOffAngle = 12;
+    SpotLight8.outerCutOffAngle = 15;
+    SpotLight8.color = glm::vec3(1, 0, 0); // red color
 
     lightManager.AddNewLight(directionLight);
-    lightManager.AddNewLight(PointLight);
+    lightManager.AddNewLight(SpotLight1);
+    lightManager.AddNewLight(spotLight2);
+    lightManager.AddNewLight(Spotlight3);
+    lightManager.AddNewLight(SpotLight4);
+    lightManager.AddNewLight(spotLight5);
+    lightManager.AddNewLight(SpotLight6);
+    lightManager.AddNewLight(pointLight1);
+    lightManager.AddNewLight(PointLight2);
+    lightManager.AddNewLight(PointLight3);
+    lightManager.AddNewLight(SpotLight7);
+    lightManager.AddNewLight(SpotLight8);
+
     //lightManager.AddNewLight(spotLight);
      lightManager.SetUniforms(defaultShader.ID);
-
+#pragma endregion
     
-    unsigned int VBO, lightCubeVAO;
-    glGenBuffers(1, &VBO);
-    glGenVertexArrays(1, &lightCubeVAO);
-    glBindVertexArray(lightCubeVAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-  
-    float xPos = 0.0f;
-    float yPos = 0.0f;
-    float zPos = 0.0f;
-
-    float lightSize = 0.5f;
-
-    float lightX = 0.0f;
-    float lightY = 0.3f;
-    float lightZ = 10.0f;
-
-    float rotX = 1.0f;
-    float rotY = 0.0f;
-    float rotZ = 0.0f;
-
-    float color[3] = { 1.0f, 1.0f, 1.0f };
     bool isWireFrame = false;
 
- 
-    float yAxis = 10;
-
-    glm::vec3 collisionPosition = glm::vec3(0.0f);
-    
-
     double lastTime = glfwGetTime();
-
-
 
     float updatedXPos;
     float updatedYPos;
     float updatedZPos;
-    char inputBufferX[256]; // Assuming a buffer size of 256 characters
-    char inputBufferY[256]; // Assuming a buffer size of 256 characters
-    char inputBufferZ[256]; // Assuming a buffer size of 256 characters
+    char inputBufferX[256]; 
+    char inputBufferY[256]; 
+    char inputBufferZ[256]; 
 
     while (!glfwWindowShouldClose(window))
     {
@@ -729,139 +878,30 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-      
+
         processInput(window);
 
-        AnimationModels(deltaTime);
+        AnimationModels(deltaTime); // animating the sliding door, "PRESS R to play"
         render.Clear();
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-
-        {
-
-            static float f = 0.0f;
-            static int counter = 0;
-
-
-            //add a Title to your GUI layout
-            ImGui::Begin("Media Player Lite!");
-            // ImGui::SetWindowFontScale(2.0f);
-            ImGui::SetWindowSize(ImVec2(800, 800));
-
-            //add a intro text
-            ImGui::Text("KAIZOKU ENGINE");
-
-            ImGui::NewLine();
-            ImGui::PushItemWidth(100);
-            ImGui::SliderFloat("##X Position", &xPos, -10, 10, "X: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 20);
-            ImGui::SliderFloat("##Y Position", &yPos, -10, 10, "Y: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 20);
-            ImGui::SliderFloat("##Z Position", &zPos, -10, 10, "Z: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 20); ImGui::Text("POSITION");
-
-
-
-            snprintf(inputBufferX, sizeof(inputBufferX), "%.1f", xPos);
-            ImGui::InputText("##X Position Input", inputBufferX, IM_ARRAYSIZE(inputBufferX));
-            xPos = atof(inputBufferX);
-
-            snprintf(inputBufferY, sizeof(inputBufferY), "%.1f", yPos);
-            ImGui::InputText("##Y Position Input", inputBufferY, IM_ARRAYSIZE(inputBufferY));
-            yPos = atof(inputBufferY);
-
-            snprintf(inputBufferZ, sizeof(inputBufferZ), "%.1f", zPos);
-            ImGui::InputText("##Z Position Input", inputBufferZ, IM_ARRAYSIZE(inputBufferZ));
-            zPos = atof(inputBufferZ);
-
-
-            CheckingValues(testingModel, xPos, yPos, zPos);
-
-            ImGui::NewLine();
-            ImGui::PushItemWidth(100);
-            ImGui::SliderFloat("##X Pos", &lightX, -10.0f, 10.0f, "X: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 10);
-            ImGui::SliderFloat("##Y Pos", &lightY, -10.0f, 10.0f, "Y: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 10);
-            ImGui::SliderFloat("##Z Pos", &lightZ, -100.0f, 10.0f,"Z: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 10); ImGui::Text("LIGHT POSITION");
-
-            ImGui::NewLine();
-            ImGui::PushItemWidth(100);
-            ImGui::SliderFloat("##X Rot", &rotX, 0.0f, 1.0f, "X: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 10);
-            ImGui::SliderFloat("##Y Rot", &rotY, 0.0f, 1.0f, "Y: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 10);
-            ImGui::SliderFloat("##Z Rot", &rotZ, 0.0f, 1.0f, "Z: %.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine(0, 10); ImGui::Text("OBJECT POSITION");
-
-
-
-            ImGui::NewLine();
-            ImGui::PushItemWidth(150);
-            ImGui::SliderFloat("SCALE", &lightSize, 0.0f, 10.0f);
-
-            ImGui::NewLine();
-            ImGui::PushItemWidth(400);
-            ImGui::ColorEdit3("LIGHT COLOR", color);
-
-            ImGui::NewLine();
-            ImGui::Checkbox("WIREFRAME", &isWireFrame);
-            // ImGui::Checkbox("Loop Audio", );
-
-            // ImGui::ColorPicker3("LightColor", 1.0f, 1.0f, 1.0f);
-
-           // constructionBlock->transform.position =(glm::vec3(xPos, yPos, zPos));
-
-
-
-             //framerate
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            ImGui::End();
-
-        }
-
-
-        glm::vec3 lightPos = glm::vec3(lightX, lightY, lightZ);
-
-     //  Light light(lightPos, glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.5f, 0.5f, 0.5f),
-     //      glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), camera.Position);
-
-
-        
-
-        // view/projection transformations
         glm::mat4 _projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 _view = camera.GetViewMatrix();
         glm::mat4 _lightModel = glm::mat4(1.0f);
 
 
-
-
-
-
-
         lightSource.use();
         lightSource.setMat4("projection", _projection);
-        lightSource.setVec3("objCol", color[0], color[1], color[2]);
         lightSource.setMat4("view", _view);
 
         for (size_t i = 0; i < lightDebugModels.size(); i++)
         {
+            lightDebugModels[i]->transform.scale =glm::vec3(0.5f); // setting scale of the light object sphere 
             lightDebugModels[i]->Draw(lightSource);
         }
-        //pointLightModel->transform.position = lightPos;
        
     
 
-      
-        glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
 
-       
         defaultShader.use();
         lightManager.UpdateUniformValues(defaultShader.ID);
         material.SetMaterialProperties(defaultShader);
@@ -870,21 +910,13 @@ int main()
          glm::mat4 view2 = camera.GetViewMatrix();
          defaultShader.setMat4("projection", projection2);
          defaultShader.setMat4("view", view2);
-        // backpack->transform.position = glm::vec3(0);
-        // backpack->Draw(defaultShader);
+         //drawing all the models
          for (size_t i = 0; i < loadedModels.size(); i++)
          {
            
              loadedModels[i]->Draw(defaultShader);
          }
 
-     
-
-
-
-       
-         //light.SetLightProperties(Shadersrc);
-         defaultShader.setVec3("objPos", xPos, yPos, zPos);
 
          if (isWireFrame)
          {
@@ -894,24 +926,13 @@ int main()
          {
              glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-
          }
-
-
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
         glfwPollEvents();
 
     }
 
-    //glDeleteVertexArrays(1, &cubeVAO);
-     glDeleteVertexArrays(1, &lightCubeVAO);
 
-
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
     glfwTerminate();
     return 0;
 
@@ -925,63 +946,75 @@ void AnimationModels(float deltaTime)
 {
     if (isAnimationKeyPressed)
     {
-        for (size_t i = 5; i < 10; i++)
-        {
-            if (animatingDoorModels[i]->transform.position.x>=0)
+        for (size_t i = 5; i < 10; i++) {
+            if (animatingDoorModels[i]->transform.position.x >= 0)
             {
-                animatingDoorModels[i]->transform.position -= glm::vec3(1, 0, 0)*deltaTime;
-
+                animatingDoorModels[i]->transform.position -= glm::vec3(1, 0, 0) * deltaTime;
             }
-            else
+            else 
             {
                 isfirstDoorOpen = true;
             }
         }
 
-        for (size_t i = 10; i < 15; i++)
-        {
-            if (animatingDoorModels[i]->transform.position.x <= 30)
+        for (size_t i = 10; i < 15; i++) {
+            if (animatingDoorModels[i]->transform.position.x <= 30) 
             {
                 animatingDoorModels[i]->transform.position += glm::vec3(1, 0, 0) * deltaTime;
-
             }
-            else
-            {
+            else {
                 isfirstDoorOpen = true;
             }
         }
 
         if (isfirstDoorOpen)
         {
-            for (size_t i = 0; i < 10; i++)
+            for (size_t i = 0; i < 10; i++) 
             {
-                if (animatingDoorModels[i]->transform.position.x >= -10.0f)
-                {
-                    animatingDoorModels[i]->transform.position -= glm::vec3(1, 0, 0) * deltaTime;
-
+                if (animatingDoorModels[i]->transform.position.x < 0.0f) 
+                { // Check if the door has closed
+                    animatingDoorModels[i]->transform.position += glm::vec3(1, 0, 0) * deltaTime; // Reverse the direction for closing
                 }
                 else
                 {
-                    isAnimationKeyPressed = false;
+                    //isAnimationKeyPressed = false;
                 }
             }
 
-            for (size_t i = 10; i < 20; i++)
-            {
-                if (animatingDoorModels[i]->transform.position.x <= 40)
-                {
-                    animatingDoorModels[i]->transform.position += glm::vec3(1, 0, 0) * deltaTime;
-
+            for (size_t i = 10; i < 20; i++) {
+                if (animatingDoorModels[i]->transform.position.x > 30)
+                { // Check if the door has closed
+                    animatingDoorModels[i]->transform.position -= glm::vec3(1, 0, 0) * deltaTime; // Reverse the direction for closing
                 }
                 else
                 {
-                    isfirstDoorOpen = true;
+                    isfirstDoorOpen = false; // Reset the flag for closing
                 }
             }
         }
-   
+    }
+    else {
+        for (size_t i = 5; i < 10; i++) {
+            if (animatingDoorModels[i]->transform.position.x < 10) 
+            { // Check if the door has closed
+                animatingDoorModels[i]->transform.position += glm::vec3(1, 0, 0) * deltaTime; // Reverse the direction for closing
+            }
+            else 
+            {
+                isfirstDoorOpen = false; // Reset the flag for closing
+            }
+        }
 
-
+        for (size_t i = 10; i < 15; i++)
+        {
+            if (animatingDoorModels[i]->transform.position.x > 20) { // Check if the door has closed
+                animatingDoorModels[i]->transform.position -= glm::vec3(1, 0, 0) * deltaTime; // Reverse the direction for closing
+            }
+            else 
+            {
+                isfirstDoorOpen = false; // Reset the flag for closing
+            }
+        }
     }
 }
 

@@ -21,6 +21,7 @@ public:
     glm::vec3 diffuse;
     glm::vec3 specular;
     glm::vec3 direction;
+    glm::vec3 color;
     LightType lightType;
 
     Model* lightModel;
@@ -45,6 +46,7 @@ public:
     GLint diffuse_UL;
     GLint ambient_UL;
     GLint position_UL;
+    GLint color_UL;
 
 
 

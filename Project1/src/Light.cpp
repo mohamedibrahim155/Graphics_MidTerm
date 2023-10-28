@@ -9,7 +9,7 @@ Light::Light()
 	this->ambient = glm::vec3(0.5f);        //default is low 
 	this->diffuse = glm::vec3(0.5f);        //default is half 
 	this->specular = glm::vec3(0.5f);
-
+	this->color = glm::vec3(1);
 	this->constant= 1.0f;
 	this->linear = 1.0f;
 	this->quadratic= 1.0f;

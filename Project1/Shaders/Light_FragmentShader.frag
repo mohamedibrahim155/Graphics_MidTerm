@@ -78,7 +78,8 @@ struct sLight
 
      float cutOff;
     float outerCutOff;
-
+    vec3 color;
+    
 };
 
 
@@ -99,7 +100,7 @@ uniform SpotLight spotLight;
 uniform int DIRECTION_LIGHT_ID =0;
 uniform int POINT_LIGHT_ID =1;
 uniform int SPOTLIGHT_ID =2;
-const int LIGHTCOUNT = 10;
+const int LIGHTCOUNT = 15;
 uniform sLight lights[LIGHTCOUNT];
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
@@ -183,7 +184,7 @@ void main()
          vec3 diffuse =  lights[index].diffuse * diff * ourColour.rgb;
          vec3 specular =  lights[index].specular * spec *ourColour.rgb;
          vec3 finalValueforDir =(ambient+diffuse+specular);
-         result+=finalValueforDir;
+         result+=finalValueforDir*lights[index].color;
         
        }
        if(LightType ==POINT_LIGHT_ID)
@@ -210,7 +211,7 @@ void main()
         ambient *= attenuation;
         diffuse *= attenuation;
         specular *= attenuation;
-         vec3 finalValueforDir= (ambient + diffuse + specular);
+         vec3 finalValueforDir= (ambient + diffuse + specular)*lights[index].color;
           result+=finalValueforDir;
        }
 
@@ -230,13 +231,18 @@ void main()
          float epsilon = lights[index].cutOff - lights[index].outerCutOff;
          float intensity = clamp((theta - lights[index].outerCutOff) / epsilon, 0.0, 1.0);
          // combine results
-         vec3 ambient = lights[index].ambient * vec3(texture(material.diffuse, TextureCoordinates));
-         vec3 diffuse = lights[index].diffuse * diff * vec3(texture(material.diffuse, TextureCoordinates));
-         vec3 specular = lights[index].specular * spec * vec3(texture(material.specular, TextureCoordinates));
+       //  vec3 ambient = lights[index].ambient * vec3(texture(material.diffuse, TextureCoordinates));
+       //  vec3 diffuse = lights[index].diffuse * diff * vec3(texture(material.diffuse, TextureCoordinates));
+       //  vec3 specular = lights[index].specular * spec * vec3(texture(material.specular, TextureCoordinates));
+
+
+                vec3 ambient = lights[index].ambient * ourColour.rgb;
+         vec3 diffuse =  lights[index].diffuse * diff * ourColour.rgb;
+         vec3 specular =  lights[index].specular * spec *ourColour.rgb;
          ambient *= attenuation * intensity;
          diffuse *= attenuation * intensity;
          specular *= attenuation * intensity;
-         vec3 finalValueforDir= (ambient + diffuse + specular);
+         vec3 finalValueforDir= (ambient + diffuse + specular)*lights[index].color;
           result+=finalValueforDir;
        }
 
@@ -248,8 +254,8 @@ void main()
     // phase 2: point lights
   // for(int i = 0; i < 4; i++)
 
-    
-    FragColor = vec4(result, 1.0);
+
+    FragColor = vec4(result  , 1.0);
 }
 
 
